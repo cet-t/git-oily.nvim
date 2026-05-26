@@ -11,11 +11,13 @@ function M.open(file, staged)
   table.insert(args, file)
 
   runner.run(args, function(result)
-    if result.code ~= 0 then
-      vim.notify('[git-oily] diff failed: ' .. result.stderr, vim.log.levels.ERROR)
-      return
-    end
-    M._show_diff(result.stdout, file, staged)
+    vim.schedule(function()
+      if result.code ~= 0 then
+        vim.notify('[git-oily] diff failed: ' .. result.stderr, vim.log.levels.ERROR)
+        return
+      end
+      M._show_diff(result.stdout, file, staged)
+    end)
   end)
 end
 

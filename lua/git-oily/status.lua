@@ -6,20 +6,24 @@ local M = {}
 
 function M.open()
   runner.run({ 'status', '--porcelain' }, function(result)
-    if result.code ~= 0 then
-      vim.notify('[git-oily] status failed: ' .. result.stderr, vim.log.levels.ERROR)
-      return
-    end
-    M._show_status(result.stdout)
+    vim.schedule(function()
+      if result.code ~= 0 then
+        vim.notify('[git-oily] status failed: ' .. result.stderr, vim.log.levels.ERROR)
+        return
+      end
+      M._show_status(result.stdout)
+    end)
   end)
 end
 
 function M.refresh(buf)
   runner.run({ 'status', '--porcelain' }, function(result)
-    if result.code ~= 0 then
-      return
-    end
-    M._update_buffer(buf, result.stdout)
+    vim.schedule(function()
+      if result.code ~= 0 then
+        return
+      end
+      M._update_buffer(buf, result.stdout)
+    end)
   end)
 end
 

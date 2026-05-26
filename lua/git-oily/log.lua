@@ -5,18 +5,22 @@ local M = {}
 
 function M.open()
   runner.run({ 'log', '--oneline', '--graph', '--decorate', '--all' }, function(result)
-    if result.code ~= 0 then
-      vim.notify('[git-oily] log failed: ' .. result.stderr, vim.log.levels.ERROR)
-      return
-    end
-    M._show_log(result.stdout)
+    vim.schedule(function()
+      if result.code ~= 0 then
+        vim.notify('[git-oily] log failed: ' .. result.stderr, vim.log.levels.ERROR)
+        return
+      end
+      M._show_log(result.stdout)
+    end)
   end)
 end
 
 function M.refresh(buf)
   runner.run({ 'log', '--oneline', '--graph', '--decorate', '--all' }, function(result)
-    if result.code ~= 0 then return end
-    M._update_buffer(buf, result.stdout)
+    vim.schedule(function()
+      if result.code ~= 0 then return end
+      M._update_buffer(buf, result.stdout)
+    end)
   end)
 end
 
@@ -104,34 +108,36 @@ function M._show_commit_diff(buf)
   end
 
   runner.run({ 'diff-tree', '--no-commit-id', '-r', '-p', commit.hash }, function(result)
-    if result.code ~= 0 then return end
+    vim.schedule(function()
+      if result.code ~= 0 then return end
 
-    local lines = vim.split(result.stdout, '\n', { plain = true })
-    if #lines <= 1 then
-      vim.notify('[git-oily] No diff for ' .. commit.hash, vim.log.levels.INFO)
-      return
-    end
-
-    local buf2 = vim.api.nvim_create_buf(true, true)
-    local label = ('oil://diff/commit/%s'):format(commit.hash)
-    vim.api.nvim_buf_set_name(buf2, label)
-    vim.api.nvim_buf_set_option(buf2, 'buftype', 'nofile')
-    vim.api.nvim_buf_set_option(buf2, 'modified', false)
-    vim.api.nvim_buf_set_option(buf2, 'swapfile', false)
-    vim.bo[buf2].filetype = 'diff'
-    vim.api.nvim_buf_set_lines(buf2, 0, -1, false, lines)
-
-    vim.keymap.set('n', 'q', function()
-      if vim.api.nvim_buf_is_valid(buf2) then
-        vim.api.nvim_buf_delete(buf2, { force = true })
+      local lines = vim.split(result.stdout, '\n', { plain = true })
+      if #lines <= 1 then
+        vim.notify('[git-oily] No diff for ' .. commit.hash, vim.log.levels.INFO)
+        return
       end
-    end, { buffer = buf2, desc = 'Oily: close diff' })
 
-    vim.api.nvim_set_current_win(vim.api.nvim_open_win(buf2, true, {
-      split = 'below',
-      width = vim.o.columns,
-      height = math.floor(vim.o.lines * 0.4),
-    }))
+      local buf2 = vim.api.nvim_create_buf(true, true)
+      local label = ('oil://diff/commit/%s'):format(commit.hash)
+      vim.api.nvim_buf_set_name(buf2, label)
+      vim.api.nvim_buf_set_option(buf2, 'buftype', 'nofile')
+      vim.api.nvim_buf_set_option(buf2, 'modified', false)
+      vim.api.nvim_buf_set_option(buf2, 'swapfile', false)
+      vim.bo[buf2].filetype = 'diff'
+      vim.api.nvim_buf_set_lines(buf2, 0, -1, false, lines)
+
+      vim.keymap.set('n', 'q', function()
+        if vim.api.nvim_buf_is_valid(buf2) then
+          vim.api.nvim_buf_delete(buf2, { force = true })
+        end
+      end, { buffer = buf2, desc = 'Oily: close diff' })
+
+      vim.api.nvim_set_current_win(vim.api.nvim_open_win(buf2, true, {
+        split = 'below',
+        width = vim.o.columns,
+        height = math.floor(vim.o.lines * 0.4),
+      }))
+    end)
   end)
 end
 

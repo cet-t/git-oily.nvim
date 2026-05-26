@@ -4,18 +4,22 @@ local M = {}
 
 function M.open()
   runner.run({ 'stash', 'list' }, function(result)
-    if result.code ~= 0 then
-      vim.notify('[git-oily] stash list failed: ' .. result.stderr, vim.log.levels.ERROR)
-      return
-    end
-    M._show_list(result.stdout)
+    vim.schedule(function()
+      if result.code ~= 0 then
+        vim.notify('[git-oily] stash list failed: ' .. result.stderr, vim.log.levels.ERROR)
+        return
+      end
+      M._show_list(result.stdout)
+    end)
   end)
 end
 
 function M.refresh(buf)
   runner.run({ 'stash', 'list' }, function(result)
-    if result.code ~= 0 then return end
-    M._update_buffer(buf, result.stdout)
+    vim.schedule(function()
+      if result.code ~= 0 then return end
+      M._update_buffer(buf, result.stdout)
+    end)
   end)
 end
 
@@ -119,29 +123,31 @@ function M._show_diff(buf)
   end
 
   runner.run({ 'stash', 'show', '-p', entry.ref }, function(result)
-    if result.code ~= 0 then return end
+    vim.schedule(function()
+      if result.code ~= 0 then return end
 
-    local lines = vim.split(result.stdout, '\n', { plain = true })
-    local buf2 = vim.api.nvim_create_buf(true, true)
-    local label = ('oil://stash/%s'):format(entry.ref:gsub('[@{}]', '_'))
-    vim.api.nvim_buf_set_name(buf2, label)
-    vim.api.nvim_buf_set_option(buf2, 'buftype', 'nofile')
-    vim.api.nvim_buf_set_option(buf2, 'modified', false)
-    vim.api.nvim_buf_set_option(buf2, 'swapfile', false)
-    vim.bo[buf2].filetype = 'diff'
-    vim.api.nvim_buf_set_lines(buf2, 0, -1, false, lines)
+      local lines = vim.split(result.stdout, '\n', { plain = true })
+      local buf2 = vim.api.nvim_create_buf(true, true)
+      local label = ('oil://stash/%s'):format(entry.ref:gsub('[@{}]', '_'))
+      vim.api.nvim_buf_set_name(buf2, label)
+      vim.api.nvim_buf_set_option(buf2, 'buftype', 'nofile')
+      vim.api.nvim_buf_set_option(buf2, 'modified', false)
+      vim.api.nvim_buf_set_option(buf2, 'swapfile', false)
+      vim.bo[buf2].filetype = 'diff'
+      vim.api.nvim_buf_set_lines(buf2, 0, -1, false, lines)
 
-    vim.keymap.set('n', 'q', function()
-      if vim.api.nvim_buf_is_valid(buf2) then
-        vim.api.nvim_buf_delete(buf2, { force = true })
-      end
-    end, { buffer = buf2, desc = 'Oily: close' })
+      vim.keymap.set('n', 'q', function()
+        if vim.api.nvim_buf_is_valid(buf2) then
+          vim.api.nvim_buf_delete(buf2, { force = true })
+        end
+      end, { buffer = buf2, desc = 'Oily: close' })
 
-    vim.api.nvim_set_current_win(vim.api.nvim_open_win(buf2, true, {
-      split = 'below',
-      width = vim.o.columns,
-      height = math.floor(vim.o.lines * 0.4),
-    }))
+      vim.api.nvim_set_current_win(vim.api.nvim_open_win(buf2, true, {
+        split = 'below',
+        width = vim.o.columns,
+        height = math.floor(vim.o.lines * 0.4),
+      }))
+    end)
   end)
 end
 
