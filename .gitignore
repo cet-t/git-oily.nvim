@@ -1,0 +1,5 @@
+.tasks/
+.DS_Store
+tags
+*.swp
+*.swo
